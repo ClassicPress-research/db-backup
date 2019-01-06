@@ -36,12 +36,14 @@
 
   "autoload": {
     "psr-4": {
-      "ClassicPress\\SimpleDBBackup\\": "src/lib"
+      "ClassicPress\\SimpleDBBackup\\": "simpledbbackup/lib"
     }
   },
 
   "autoload-dev": {
-    "ClassicPress\\SimpleDBBackup\\": "Tests"
+    "psr-4": {
+      "ClassicPress\\SimpleDBBackup\\": "Tests"
+    }
   }
 
 }
