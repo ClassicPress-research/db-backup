@@ -125,11 +125,9 @@ class Database extends AbstractPart implements
 		$this->setSubstep('');
 
 		// Log things the user should know
-		$this->getLogger()->info(sprintf("Starting to process replacements in database “%s”", $this->getDbo()->getDatabase()));
+		$this->getLogger()->info(sprintf("Starting to process backup of database “%s”", $this->getDbo()->getDatabase()));
 
 		$this->logOutputWriter();
-		$this->logLiveModeStatus();
-		$this->logReplacements();
 
 		// Run once-per-database callbacks.
 		$this->getLogger()->debug("Retrieving database metadata");
@@ -179,7 +177,7 @@ class Database extends AbstractPart implements
 				return false;
 			}
 
-			// The table was filtered out, e.g. because it's a VIEW, not a table. Get the next table on the next tick.
+			// The table was filtered out. Get the next table on the next tick.
 			if (empty($this->tablePart))
 			{
 				return true;
@@ -285,49 +283,6 @@ class Database extends AbstractPart implements
 	}
 
 	/**
-	 * Log the Live Mode status. This tells the user what will and will not happen as a result of their actions.
-	 *
-	 * @return  void
-	 *
-	 * @codeCoverageIgnore
-	 */
-	protected function logLiveModeStatus()
-	{
-		$message = "Live Mode: Enabled. Your database WILL be modified.";
-
-		if (!$this->getConfig()->isLiveMode())
-		{
-			$message      = "Live Mode: Disabled. Your database will NOT be modified.";
-			$outputWriter = $this->getOutputWriter();
-
-			if ($outputWriter->getFilePath())
-			{
-				$message .= ' The actions to be taken will be saved in the Output SQL file instead.';
-			}
-		}
-
-		$this->getLogger()->info($message);
-	}
-
-	protected function logReplacements()
-	{
-		$replacements = $this->getConfig()->getReplacements();
-
-		$this->getLogger()->debug('The following replacements have been set up (FROM ===> TO)');
-		$this->getLogger()->debug('========== BEGINNING OF LIST ==========');
-
-		foreach ($replacements as $from => $to)
-		{
-			$this->getLogger()->debug("$from ===> $to");
-		}
-
-		$this->getLogger()->debug('========== END OF LIST ==========');
-
-		$replacementMode = $this->getConfig()->isRegularExpressions() ? 'Regular Expressions' : 'Plain Text';
-		$this->getLogger()->debug("Replacements mode: $replacementMode");
-	}
-
-	/**
 	 * Prepare to operate on the next table on the list.
 	 */
 	protected function takeNextTable()
@@ -342,15 +297,6 @@ class Database extends AbstractPart implements
 		$tableName       = array_shift($this->tableList);
 		$tableMeta       = $this->getDbo()->getTableMeta($tableName);
 		$this->tablePart = null;
-
-		/**
-		 * TODO -- Apply skip table filters
-		 *
-		 * When a table is skipped due to filtering do:
-		 * $this->tablePart = null;
-		 * return;
-		 * and the algorithm will proceed to take the next table.
-		 */
 
 		$this->setStep($tableMeta->getName());
 

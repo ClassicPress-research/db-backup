@@ -23,7 +23,8 @@
     "php": ">=5.6.0",
     "ext-mysqli": "*",
     "ext-json": "*",
-    "ext-pdo": "*"
+    "ext-pdo": "*",
+    "ext-mbstring": "*"
   },
 
   "require-dev": {

@@ -75,6 +75,13 @@ class Configuration
 	private $maxBatchSize = 1000;
 
 	/**
+	 * Maximum compound query size. Set to zero to create a new INSERT INTO statement per row.
+	 *
+	 * @var  int
+	 */
+	private $maxQuerySize = 263168;
+
+	/**
 	 * The human-readable description for the backup job which will be recorded in the database
 	 *
 	 * @var  string
@@ -275,6 +282,28 @@ class Configuration
 	protected function setMaxBatchSize($maxBatchSize)
 	{
 		$this->maxBatchSize = max((int) $maxBatchSize, 1);
+	}
+
+	/**
+	 * Get the maximum query size in bytes.
+	 *
+	 * @return  int
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function getMaxQuerySize()
+	{
+		return $this->maxQuerySize;
+	}
+
+	/**
+	 * Set the maximum query size in bytes. Must be a positive integer (non-zero).
+	 *
+	 * @param   int  $maxQuerySize
+	 */
+	public function setMaxQuerySize($maxQuerySize)
+	{
+		$this->maxQuerySize = max(0, (int)$maxQuerySize);
 	}
 
 	/**

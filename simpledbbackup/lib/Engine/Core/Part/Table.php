@@ -20,11 +20,11 @@ use ClassicPress\SimpleDBBackup\Engine\Core\Action\Table\ActionAware as TableAct
 use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAwareInterface;
+use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Data\FilterInterface as DataFilterInterace;
 use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Row\FilterInterface as RowFilterInterface;
 use ClassicPress\SimpleDBBackup\Engine\Core\Helper\MemoryInfo;
 use ClassicPress\SimpleDBBackup\Engine\Core\OutputWriterAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\OutputWriterAwareInterface;
-use ClassicPress\SimpleDBBackup\Engine\Core\Response\SQL;
 use ClassicPress\SimpleDBBackup\Engine\PartInterface;
 use ClassicPress\SimpleDBBackup\Engine\StepAware;
 use ClassicPress\SimpleDBBackup\Logger\LoggerAware;
@@ -38,6 +38,7 @@ use ClassicPress\SimpleDBBackup\Writer\WriterInterface;
  * @package ClassicPress\SimpleDBBackup\Engine\Core\Part
  */
 class Table extends AbstractPart implements
+	PartInterface,
 	ConfigurationAwareInterface,
 	DatabaseAwareInterface,
 	OutputWriterAwareInterface
@@ -51,15 +52,15 @@ class Table extends AbstractPart implements
 	use StepAware;
 
 	/**
-	 * Hard-coded list of table column filter classes. This is for my convenience.
+	 * Hard-coded list of table data dump filter classes. This is for convenience during Unit Testing.
 	 *
 	 * @var  array
 	 */
-	protected $filters = [
+	protected $dataFilters = [
 	];
 
 	/**
-	 * Hard-coded list of table row filter classes. This is for my convenience.
+	 * Hard-coded list of table row filter classes. This is for convenience during Unit Testing.
 	 *
 	 * @var  RowFilterInterface[]
 	 */
@@ -73,6 +74,14 @@ class Table extends AbstractPart implements
 	 * @var  array
 	 */
 	protected $rowFilterInstances = [];
+
+	/**
+	 * Cache for the data dump filter object instances. Saves a ton of time since PHP doesn't have to create and destroy
+	 * myriads of objects on each page load.
+	 *
+	 * @var  array
+	 */
+	protected $dataFilterInstances = [];
 
 	/**
 	 * Hard-coded list of per-table action classes. This is for my convenience.
@@ -118,20 +127,6 @@ class Table extends AbstractPart implements
 	protected $columnsMeta = [];
 
 	/**
-	 * The names of the columns which constitute the table's primary key
-	 *
-	 * @var  string[]
-	 */
-	protected $primaryKeyColumns = [];
-
-	/**
-	 * The names of the columns to which we will be applying replacements
-	 *
-	 * @var  string[]
-	 */
-	protected $replaceableColumns = [];
-
-	/**
 	 * The names of the columns which are my primary key
 	 *
 	 * @var  string[]
@@ -145,6 +140,42 @@ class Table extends AbstractPart implements
 	 * @var  string
 	 */
 	protected $autoIncrementColumn = '';
+
+	/**
+	 * Autoincrement column value of the last row processed.
+	 *
+	 * If a table as an auto-increment column we store its value for the last row we successfully processed. This allows
+	 * us to optimize the SQL SELECT query for the next backup step on this table.
+	 *
+	 * @var  int
+	 */
+	protected $lastAutoIncrement = 0;
+
+	/**
+	 * The prototype INSERT INTO SQL query
+	 *
+	 * @var  string
+	 */
+	private $protoSQL;
+
+	/**
+	 * The tuples of data we need to write out to disk
+	 *
+	 * @var  array
+	 */
+	private $data;
+
+	/**
+	 * The length of the SQL INSERT query which will be written out to disk.
+	 *
+	 * This is the length of the prototype SQL query, plus the length of the tuples, plus two bytes for each tuple to
+	 * take into account the comma and space separating tuples. If you are careful you might have observed this is one
+	 * byte too many for the final query (since it ends in a semicolon). However, it's followed by a newline, therefore
+	 * the total size is still correct. That's a non-obvious optimization so I thought I should explain it.
+	 *
+	 * @var  int
+	 */
+	private $dataLength;
 
 	/**
 	 * Table constructor.
@@ -172,7 +203,7 @@ class Table extends AbstractPart implements
 
 	protected function prepare()
 	{
-		$this->getLogger()->info(sprintf("Starting to process replacements in table “%s”", $this->tableMeta->getName()));
+		$this->getLogger()->info(sprintf("Backing up table “%s”", $this->tableMeta->getName()));
 
 		// Get meta for columns
 		$this->getLogger()->debug('Retrieving table column metadata');
@@ -181,28 +212,6 @@ class Table extends AbstractPart implements
 		// Run once-per-table callbacks.
 		$this->runPerTableActions($this->perTableActions, $this->tableMeta, $this->columnsMeta, $this->getLogger(),
 			$this->getOutputWriter(), $this->getDbo(), $this->getConfig());
-
-		$this->getLogger()->debug('Filtering the columns list');
-		$this->replaceableColumns = $this->applyFilters($this->tableMeta, $this->columnsMeta, $this->filters);
-
-		/**
-		 * Are there no text columns left? This can happen in two ways:
-		 *
-		 * 1. Only non-text columns on the table, e.g. a glue table in a many-to-many table relationship
-		 * 2. All text columns were filtered out by text filters
-		 *
-		 * In this case we mark ourselves as post-run and terminate early. Note that we use STATE_POSTRUN, not
-		 * STATE_FINALIZED. That's because the call the nextState() in the abstract superclass will do the transition
-		 * for us.
-		 */
-		if (empty($this->replaceableColumns))
-		{
-			$this->getLogger()->info(sprintf('Skipping table %s -- It does not have any text columns I can replace data into.', $this->tableMeta->getName()));
-			$this->state = PartInterface::STATE_POSTRUN;
-		}
-
-		// Log columns to replace
-		$this->getLogger()->debug(sprintf('Table %s replaceable columns: %s', $this->tableMeta->getName(), implode(', ', $this->replaceableColumns)));
 
 		// Determine optimal batch size
 		$memoryLimit      = $this->memoryInfo->getMemoryLimit();
@@ -216,12 +225,39 @@ class Table extends AbstractPart implements
 
 		// Determine the auto-increment column
 		$this->autoIncrementColumn = $this->findAutoIncrementColumn($this->columnsMeta);
+
+		// Create a prototype SQL INSERT statement without the actual value tuples
+		$this->protoSQL = sprintf("INSERT INTO %s %s VALUES ",
+			$this->db->qn($this->tableMeta->getName()),
+			$this->getColumnListForInsert(array_keys($this->columnsMeta), $this->db)
+		);
+
+		// Initialize the data to write out
+		$this->data = [];
+		$this->dataLength = 0;
 	}
 
+	/**
+	 * Main processing. Here we dump the rows of the table. When we are done we return boolean false to indicate we are
+	 * done processing. If more steps are required we return true instead.
+	 *
+	 * @return  bool
+	 */
 	protected function process()
 	{
+		// Get the maxquery size in a local variable instead of going continuously through the getter in the tight loop.
+		$maxQuerySize = $this->config->getMaxQuerySize();
+
 		// Log the next step
 		$tableName = $this->tableMeta->getName();
+
+		// Check data dump filters. If the data is filtered out return false, indicating we're done
+		if (!$this->applyDataFilters($this->tableMeta, $this->dataFilters))
+		{
+			$this->logger->info(sprintf("Data of table “%s” will not be backed up.", $this->tableMeta->getName()));
+
+			return false;
+		}
 
 		$this->logger->info(sprintf("Processing up to %d rows of table %s starting with row %d",
 			$this->batch, $tableName, $this->offset + 1));
@@ -230,8 +266,8 @@ class Table extends AbstractPart implements
 		 * Get the next batch of rows
 		 *
 		 * Why clone the database driver? Every time we run execute() the cursor inside the driver is overwritten. If
-		 * we use the same driver for the SELECT query and for running data modification queries we will end up
-		 * overwriting our cursor the first time we run a data modification query. This will kill our loop prematurely
+		 * we use the same driver for the SELECT query and for running any other query while the result is open we will
+		 * end up overwriting our cursor the first time we run a different query. This will kill our loop prematurely
 		 * and cause us to use too many iterations to process the data.
 		 *
 		 * By using a cloned driver we have multiple cursors open at the same time on the same connection. This lets us
@@ -242,6 +278,7 @@ class Table extends AbstractPart implements
 		$queryDb = clone $db;
 		$timer   = $this->getTimer();
 		$sql     = $this->getSelectQuery();
+
 		$this->enforceSQLCompatibility();
 		$queryDb->setQuery($sql, $this->offset, $this->batch);
 		$this->setSubstep($tableName . ', record ' . $this->offset);
@@ -255,26 +292,67 @@ class Table extends AbstractPart implements
 			$this->logger->info("No more data found in this table.");
 			$db->freeResult($cursor);
 
+			// If I'm done backing the table and I still have data to write out then please do so now.
+			if (!empty($this->data))
+			{
+				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data));
+				$this->data = [];
+				$this->dataLength = 0;
+			}
+
 			return false;
 		}
-
-		// Set up replacement
-		$replacements         = $this->getConfig()->getReplacements();
-		$isRegularExpressions = $this->getConfig()->isRegularExpressions();
-		$liveMode             = $this->getConfig()->isLiveMode();
 
 		// Iterate every row as long as we have enough time.
 		while ($timer->getTimeLeft() && ($row = $queryDb->fetchAssoc($cursor)))
 		{
 			$this->offset++;
 
-			$response = $this->processRow($tableName, $row, $this->replaceableColumns, $this->pkColumns, $replacements, $isRegularExpressions, $db);
+			// Filter row
+			if (!$this->applyRowFilters($tableName, $row, $this->rowFilters))
+			{
+				// Log the primary key identification of the filtered row
+				$pkSig = '';
 
-			// Apply the action result
-			$this->applyActionQueries($response, $this->getOutputWriter(), $this->getDbo(), $liveMode, true);
+				foreach ($this->pkColumns as $c)
+				{
+					$v = addcslashes($row[$c], "\\'");
+					$pkSig = "$c = '$v' ,";
+				}
 
-			// Be kind to the memory
-			unset($response);
+				// Log the filtered row
+				$this->getLogger()->debug(sprintf('Skipping row [%s] of table “%s”', substr($pkSig, 0, -2), $tableName));
+
+				continue;
+			}
+
+			if (!empty($this->autoIncrementColumn))
+			{
+				$this->lastAutoIncrement = $row[$this->autoIncrementColumn];
+			}
+
+			// Convert the row data to a tuple
+			$tuple = $this->toTuple($row, $db);
+
+			/**
+			 * If the current SQL INSERT INTO query plus the new tuple exceed my query size limit I will write it out to
+			 * the disk.
+			 */
+			if ($this->dataLength + $this->rawByteLength($tableName) + 2 > $maxQuerySize)
+			{
+				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data));
+
+				// Be kind to the memory
+				unset($sql);
+
+				// Reinitialize the data to write out.
+				$this->data       = [];
+				$this->dataLength = 0;
+			}
+
+			// The tuple has not been written to disk. Add it to the data to write out.
+			$this->data[]     = $tuple;
+			$this->dataLength += strlen($tuple) + 2;
 		}
 
 		unset($queryDb);
@@ -285,61 +363,63 @@ class Table extends AbstractPart implements
 
 	protected function finalize()
 	{
-		$this->getLogger()->info(sprintf("Finished processing replacements in table “%s”", $this->tableMeta->getName()));
+		$this->getLogger()->info(sprintf("Finished backing up table “%s”", $this->tableMeta->getName()));
 	}
 
 	/**
-	 * Apply the hard-coded list of column filters against the provided columns list and return a filtered list of
-	 * strings, consisting of the column names which will we be replacing into.
+	 * Apply the data dump filters on the table
 	 *
-	 * @param   TableMeta  $tableMeta    The metadata of the table we are filtering columns for
-	 * @param   Column[]   $columnsMeta  The columns metadata we will be filtering
-	 * @param   string[]   $filters      The filters to apply
+	 * @param   TableMeta $table    The metadata of the table we are backing up
+	 * @param   array     $filters  The list of filter classes
 	 *
-	 * @return  string[]
+	 * @return  bool  True if we can back up the table data
 	 */
-	protected function applyFilters(TableMeta $tableMeta, array $columnsMeta, array $filters)
+	protected function applyDataFilters(TableMeta $table, array $filters)
 	{
-		$allColumns = array_merge($columnsMeta);
-
-		foreach ($filters as $class)
+		if (empty($this->dataFilterInstances))
 		{
-			if (!class_exists($class))
+			foreach ($filters as $class)
 			{
-				$this->addWarningMessage(sprintf("Filter class “%s” not found. Is your installation broken?", $class));
+				if (!class_exists($class))
+				{
+					$this->addWarningMessage(sprintf("Data filter class “%s” not found. Is your installation broken?", $class));
 
-				continue;
+					continue;
+				}
+
+				if (!in_array('ClassicPress\\SimpleDBBackup\\Engine\\Core\\Filter\\Data\\FilterInterface', class_implements($class)))
+				{
+					$this->addWarningMessage(sprintf("Filter class “%s” is not a valid data filter. Is your installation broken?", $class));
+
+					continue;
+				}
+
+				/** @var DataFilterInterace $o */
+				$this->dataFilterInstances[$class] = new $class($this->getLogger(), $this->getDbo(), $this->getConfig());
 			}
+		}
 
-			if (!in_array('ClassicPress\\SimpleDBBackup\\Engine\\Core\\Filter\\Column\\FilterInterface', class_implements($class)))
+		/** @var DataFilterInterace $filter */
+		foreach ($this->dataFilterInstances as $filter)
+		{
+			if (!$filter->filter($table))
 			{
-				$this->addWarningMessage(sprintf("Filter class “%s” is not a valid column filter. Is your installation broken?", $class));
-
-				continue;
+				return false;
 			}
-
-			/** @var FilterInterface $o */
-			$o = new $class($this->getLogger(), $this->getDbo(), $this->getConfig());
-			$allColumns = $o->filter($tableMeta, $allColumns);
 		}
 
-		$ret = [];
-
-		if (empty($allColumns))
-		{
-			return $ret;
-		}
-
-		/** @var Column $column */
-		foreach ($allColumns as $column)
-		{
-			$ret[] = $column->getColumnName();
-		}
-
-		return $ret;
-
+		return true;
 	}
 
+	/**
+	 * Apply the per-row filters on the table
+	 *
+	 * @param   string  $tableName  The name of the table we're backing up
+	 * @param   array   $row        The row we're currently backing up
+	 * @param   array   $filters    The list of filter classes
+	 *
+	 * @return  bool
+	 */
 	protected function applyRowFilters($tableName, array $row, array $filters)
 	{
 		if (empty($this->rowFilterInstances))
@@ -360,7 +440,7 @@ class Table extends AbstractPart implements
 					continue;
 				}
 
-				/** @var FilterInterface $o */
+				/** @var DataFilterInterace $o */
 				$this->rowFilterInstances[$class] = new $class($this->getLogger(), $this->getDbo(), $this->getConfig());
 			}
 		}
@@ -549,31 +629,21 @@ class Table extends AbstractPart implements
 	 */
 	protected function getSelectQuery()
 	{
-		$db = $this->getDbo();
-
-		/**
-		 * We do not need to get all columns, just the PK and the columns to replace.
-		 *
-		 * Note that there might be an overlap between PK and replaceable columns, hence the array_unique.
-		 */
-		$columns = array_merge($this->pkColumns, $this->replaceableColumns);
-		$columns = array_unique($columns);
-		$columns = array_map([$db, 'quoteName'], $columns);
-
-		// If we are selecting all columns it's best to use '*' (makes the query faster)
-		if (count($columns) == count($this->columnsMeta))
-		{
-			$columns = '*';
-		}
-
 		// Get the base query
+		$db    = $this->getDbo();
 		$query = $db->getQuery(true)
-			->select($columns)
+			->select('*')
 			->from($db->qn($this->tableMeta->getName()));
 
-		// If we have an auto-increment column sort by it ascending (maintains consistency)
+		/**
+		 * If we have an auto-increment column sort by it ascending (maintains consistency) and optimize the query
+		 * performance by using it in a WHERE clause. The WHERE clause operates on the indexed auto-increment column
+		 * which drastically reduces the time MySQL needs to seek to later columns on massive tables (millions of rows
+		 * of data)
+		 */
 		if (!empty($this->autoIncrementColumn))
 		{
+			$query->where($db->qn($this->autoIncrementColumn) . '>' . $this->lastAutoIncrement);
 			$query->order($db->qn($this->autoIncrementColumn) . ' ASC');
 		}
 
@@ -581,128 +651,50 @@ class Table extends AbstractPart implements
 	}
 
 	/**
-	 * Process the replacements for a single row.
+	 * Convert a single row in a tuple for use in a SQL INSERT statement
 	 *
-	 * @param   string  $tableName             The name of the table the row belongs to
-	 * @param   array   $row                   The row data (PK and replaceable columns)
-	 * @param   array   $replaceableColumns    Names of columns where data will be replaced to
-	 * @param   array   $pkColumns             Names of columns which make up the table's primary key
-	 * @param   array   $replacements          Replacements to do as [$from => $to, ...]
-	 * @param   bool    $isRegularExpressions  Is the FROM side of replacements a regular expression?
-	 * @param   Driver  $db                    The DB driver used to prepare the SQL queries
+	 * @param   array   $row  The row data to dumb
+	 * @param   Driver  $db   The database driver, used to escape the data
 	 *
-	 * @return  SQL
+	 * @return  string
 	 */
-	protected function processRow($tableName, array $row, array $replaceableColumns, array $pkColumns,
-	                              array $replacements, $isRegularExpressions, Driver $db)
+	protected function toTuple(array $row, Driver $db)
 	{
-		// Apply row filtering
-		if (!$this->applyRowFilters($tableName, $row, $this->rowFilters))
-		{
-			// Log the primary key identification of the filtered row
-			$pkSig = '';
+		// Escape the raw data
+		$row = array_map(function ($value) use ($db) {
+			// Special consideration for NULL values
+			return is_null($value) ? 'NULL' : $db->quote($value);
+		}, $row);
 
-			foreach ($pkColumns as $c)
-			{
-				$v = addcslashes($row[$c], "\\'");
-				$pkSig = "$c = '$v' ,";
-			}
+		return '(' . implode(', ', $row) . ')';
+	}
 
-			// Log the filtered row
-			$this->getLogger()->debug(sprintf('Skipping row [%s] of table `%s`', substr($pkSig, 0, -2), $tableName));
+	/**
+	 * Get the raw length of a string, in bytes.
+	 *
+	 * This requires the mbstring to be enabled. In this case we return the string length as if it were raw 8-bit ASCII
+	 * characters, i.e. the raw byte length. If mbstring is not enabled we fall back to strlen() and hope your PHP
+	 * version does not know how to handle multibyte Unicode characters, the default behaviour for PHP 5.6 and 7.x.
+	 *
+	 * @param   string  $string  The string to get the length of
+	 *
+	 * @return  int  The string length in bytes
+	 */
+	private function rawByteLength($string)
+	{
+		return function_exists('mb_strlen') ? mb_strlen($string, '8bit') : strlen($string);
+	}
 
-			// Return an empty response, skipping everything else
-			$response = new SQL([], []);
-
-			return $response;
-		}
-
-		$newRow  = array_merge($row);
-		$changed = false;
-
-		// Iterate columns, run the replacement against them
-		foreach ($replaceableColumns as $column)
-		{
-			foreach ($replacements as $from => $to)
-			{
-				$newRow[$column] = Replacement::replace($newRow[$column], $from, $to, $isRegularExpressions);
-
-				$changed = $changed || ($newRow[$column] != $row[$column]);
-			}
-		}
-
-		// If the row has not been modified continue
-		if (!$changed)
-		{
-			return new SQL([], []);
-		}
-
-		// TODO Add an option to convert UPDATE to UPDATE IGNORE for backup (recommended) and/or output SQL commands.
-		$tableNameQuoted = $db->qn($tableName);
-		$backupSQLProto  = "UPDATE {$tableNameQuoted} SET %s WHERE %s";
-		$outputSQLProto  = "UPDATE {$tableNameQuoted} SET %s WHERE %s";
-		$backupSet       = [];
-		$outputSet       = [];
-		$backupWhere     = [];
-		$outputWhere     = [];
-
-		// Get the SET part of the SQL commands based on the replaceable columns with different data
-		foreach ($replaceableColumns as $column)
-		{
-			// Skip over unchanged columns
-			if ($row[$column] == $newRow[$column])
-			{
-				continue;
-			}
-
-			// Backup sets the column to the CURRENT value since it needs to undo the replacement (new to old)
-			$backupSet[] = $db->qn($column) . ' = ' . $db->q($row[$column]);
-			// Output sets the column to the NEW value since it needs to perform the replacement (old to new)
-			$outputSet[] = $db->qn($column) . ' = ' . $db->q($newRow[$column]);
-		}
-
-		// Get the WHERE clause based on the already determined PK columns
-		foreach ($pkColumns as $column)
-		{
-			// Backup finds the column using its NEW value since it runs AFTER replacement
-			$backupWhere[] = $db->qn($column) . ' = ' . $db->q($newRow[$column]);
-			// Output finds the column using its CURRENT value since it runs BEFORE replacement
-			$outputWhere[] = $db->qn($column) . ' = ' . $db->q($row[$column]);
-		}
-
-		// Be kind to the memory
-		unset($row);
-		unset($newRow);
-
-		// Generate backup SQL
-		$backupSQL = sprintf($backupSQLProto,
-			implode(', ', $backupSet),
-			'(' . implode(') AND (', $backupWhere) . ')'
-		);
-
-		// Be kind to the memory
-		unset($backupSQLProto);
-		unset($backupSet);
-		unset($backupWhere);
-
-		// Generate output SQL
-		$outputSQL = sprintf($outputSQLProto,
-			implode(', ', $outputSet),
-			'(' . implode(') AND (', $outputWhere) . ')'
-		);
-
-		// Be kind to the memory
-		unset($backupSQLProto);
-		unset($backupSet);
-		unset($backupWhere);
-
-		// Create a response
-		$response = new SQL([$outputSQL], [$backupSQL]);
-
-		// Be kind to the memory
-		unset($outputSQL);
-		unset($backupSQL);
-
-		return $response;
+	/**
+	 * Converts the table's column list into the columns argument for an INSERT INTO query.
+	 *
+	 * @param   array   $columns  A list of column names
+	 * @param   Driver  $db       The database driver used to quote the field names
+	 *
+	 * @return  string
+	 */
+	private function getColumnListForInsert(array $columns, Driver $db)
+	{
+		return '(' . implode(',', array_map([$db, 'quoteName'], $columns)) . ')';
 	}
 }

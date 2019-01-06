@@ -23,6 +23,7 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
 			'maxExecutionTime'   => 7,
 			'runtimeBiasPercent' => 42,
 			'maxBatchSize'       => 123,
+			'maxQuerySize'       => 131584,
 			'description'        => 'Foo bar baz bat',
 		];
 
@@ -35,6 +36,7 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
 		self::assertEquals($input['maxExecutionTime'], $config->getMaxExecutionTime());
 		self::assertEquals($input['runtimeBiasPercent'], $config->getRuntimeBiasPercent());
 		self::assertEquals($input['maxBatchSize'], $config->getMaxBatchSize());
+		self::assertEquals($input['maxQuerySize'], $config->getMaxQuerySize());
 		self::assertEquals($input['description'], $config->getDescription());
 	}
 
@@ -48,6 +50,7 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
 			'maxExecutionTime'   => 7,
 			'runtimeBiasPercent' => 42,
 			'maxBatchSize'       => 123,
+			'maxQuerySize'       => 131584,
 			'description'        => 'Foo bar baz bat',
 		];
 

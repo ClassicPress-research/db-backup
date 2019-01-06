@@ -5,19 +5,19 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU/GPL v3 or later
  */
 
-namespace ClassicPress\SimpleDBBackup\Engine\Core\Filter\Row;
+namespace ClassicPress\SimpleDBBackup\Engine\Core\Filter\Data;
 
 use ClassicPress\SimpleDBBackup\Database\Driver;
+use ClassicPress\SimpleDBBackup\Database\Metadata\Table;
 use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
 use ClassicPress\SimpleDBBackup\Logger\LoggerInterface;
 
 /**
- * Interface to a row list filter.
+ * Interface to a table data dump filter.
  *
- * Row filters let you programmatically control which database rows should NOT be backed up. For example, we may choose
- * not back up transients.
+ * Remember to add the filters to ClassicPress\SimpleDBBackup\Engine\Core\Table::$dataFilters
  *
- * @package ClassicPress\SimpleDBBackup\Engine\Core\Filter\Row
+ * @package ClassicPress\SimpleDBBackup\Engine\Core\Filter\Table
  */
 interface FilterInterface
 {
@@ -31,12 +31,13 @@ interface FilterInterface
 	public function __construct(LoggerInterface $logger, Driver $db, Configuration $config);
 
 	/**
-	 * Check whether the table row should be processed or not
+	 * Should I back up the contents of this TABLE / VIEW?
 	 *
-	 * @param   $tableName  string  The name of the table being processed
-	 * @param   $row        array   The row being processed
+	 * Return true to allow the table data to be backed up.
 	 *
-	 * @return  bool  True to allow processing
+	 * @param   Table  $table  The metadata of the table whose data we're about to back up.
+	 *
+	 * @return  bool
 	 */
-	public function filter($tableName, array $row);
+	public function filter(Table $table);
 }
