@@ -60,7 +60,7 @@ The other reason no locking is applied is that locking has to be lifted or the s
 
 Unlike third party backup plugins there is no provision for excluding tables or specifying that the data of some tables should not be backed up. This kind of advanced backup is out of scope of this plugin. You can use a third party backup plugin in this case.
 
-Moreover, this plugin will naively back up all tables and views it finds in the database, regardless of their prefix. This is done on purpose. The use cases we cater for assume a simple site with a database holding its tables only. If you have two sites sharing the same database, sorry, we'll be backing up everyting. 
+Moreover, this plugin will naively back up all tables and views it finds in the database, regardless of their prefix. This is done on purpose. The use cases we cater for assume a simple site with a database holding its tables only. If you have two sites sharing the same database, sorry, we'll be backing up everything. 
 
 While it's trivial to reject tables whose names don't start with the prefix definied in the configuration file, my experience tells me that it's more harmful than backing up everything. Many times I've seen sites with third party scripts installed on the same database and integrated into the site or plugins (based on third party scripts) not following WordPress/ClassicPress best practices and using table names without a prefix.
 

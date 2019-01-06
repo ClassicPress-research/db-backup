@@ -44,8 +44,10 @@ class OutFileSetup
 	/**
 	 * OutFileSetup constructor.
 	 *
-	 * @param   DateTime|string $dateTime
+	 * @param   DateTime|string     $dateTime
 	 * @param   DateTimeZone|string $timeZone
+	 *
+	 * @throws  Exception
 	 */
 	public function __construct($dateTime = 'now', $timeZone = 'UTC')
 	{
@@ -89,10 +91,12 @@ class OutFileSetup
 	 * - a DateTime object    : Used as-is
 	 * - anything else / null : Use the DateTime given in the object constructor (fixed point in time)
 	 *
-	 * @param   string                $format    Date/time format (see date())
-	 * @param   string|null|DateTime  $dateTime  The date and time to format. See above.
+	 * @param   string               $format   Date/time format (see date())
+	 * @param   string|null|DateTime $dateTime The date and time to format. See above.
 	 *
 	 * @return  string
+	 *
+	 * @throws  Exception
 	 */
 	public function getLocalTimeStamp($format = 'Y-m-d H:i:s', $dateTime = null)
 	{
@@ -124,9 +128,11 @@ class OutFileSetup
 	/**
 	 * Return the file naming variables for the specific point in time.
 	 *
-	 * @param   string|int  $timestamp  The date/time or UNIX timestamp of the point in time the variables will be replaced for
+	 * @param   string|int $timestamp The date/time or UNIX timestamp of the point in time the variables will be replaced for
 	 *
 	 * @return  array
+	 *
+	 * @throws  Exception
 	 */
 	public function getVariables($timestamp = null)
 	{
@@ -156,11 +162,13 @@ class OutFileSetup
 	/**
 	 * Replace the variables in a given string.
 	 *
-	 * @param   string      $input       The string to replace variables in
-	 * @param   array       $additional  Any additional replacements to make
-	 * @param   string|int  $timestamp   The date/time or UNIX timestamp of the point in time the variables will be replaced for
+	 * @param   string     $input      The string to replace variables in
+	 * @param   array      $additional Any additional replacements to make
+	 * @param   string|int $timestamp  The date/time or UNIX timestamp of the point in time the variables will be replaced for
 	 *
 	 * @return  string
+	 *
+	 * @throws  Exception
 	 *
 	 * @codeCoverageIgnore
 	 */
@@ -175,9 +183,11 @@ class OutFileSetup
 	/**
 	 * Create a new output SQL file writer object based on the file path set up in the configuration.
 	 *
-	 * @param   Configuration  $config      The engine configuration
-	 * @param   bool           $reset       Should I delete existing files by that name?
-	 * @param   array          $additional  Any additional replacements to make
+	 * @param   Configuration $config     The engine configuration
+	 * @param   bool          $reset      Should I delete existing files by that name?
+	 * @param   array         $additional Any additional replacements to make
+	 *
+	 * @throws  Exception
 	 *
 	 * @return  WriterInterface
 	 */
@@ -199,9 +209,11 @@ class OutFileSetup
 	 * Create a new logger object based on the log file path set up in the configuration. A null logger is returned if
 	 * the log path is empty.
 	 *
-	 * @param   Configuration  $config      The engine configuration
-	 * @param   bool           $reset       Should I delete existing files by that name?
-	 * @param   array          $additional  Any additional replacements to make
+	 * @param   Configuration $config     The engine configuration
+	 * @param   bool          $reset      Should I delete existing files by that name?
+	 * @param   array         $additional Any additional replacements to make
+	 *
+	 * @throws  Exception
 	 *
 	 * @return  LoggerInterface
 	 */
