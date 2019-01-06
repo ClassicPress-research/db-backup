@@ -21,6 +21,8 @@ use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAwareInterface;
 use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Data\FilterInterface as DataFilterInterace;
+use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Data\NoViewData;
+use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Data\SpecialEngines;
 use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Row\FilterInterface as RowFilterInterface;
 use ClassicPress\SimpleDBBackup\Engine\Core\Helper\MemoryInfo;
 use ClassicPress\SimpleDBBackup\Engine\Core\OutputWriterAware;
@@ -57,6 +59,8 @@ class Table extends AbstractPart implements
 	 * @var  array
 	 */
 	protected $dataFilters = [
+		NoViewData::class,
+		SpecialEngines::class,
 	];
 
 	/**
@@ -180,13 +184,13 @@ class Table extends AbstractPart implements
 	/**
 	 * Table constructor.
 	 *
-	 * @param   TimerInterface   $timer         The timer object that controls us
-	 * @param   Driver           $db            The database we are operating against
-	 * @param   LoggerInterface  $logger        The logger for our actions
-	 * @param   Configuration    $config        The engine configuration
-	 * @param   WriterInterface  $outputWriter  The writer for the output SQL file (can be null)
-	 * @param   TableMeta        $tableMeta     The metadata of the table we will be processing
-	 * @param   MemoryInfo       $memInfo       Memory info object, used for determining optimum batch size
+	 * @param   TimerInterface  $timer        The timer object that controls us
+	 * @param   Driver          $db           The database we are operating against
+	 * @param   LoggerInterface $logger       The logger for our actions
+	 * @param   Configuration   $config       The engine configuration
+	 * @param   WriterInterface $outputWriter The writer for the output SQL file (can be null)
+	 * @param   TableMeta       $tableMeta    The metadata of the table we will be processing
+	 * @param   MemoryInfo      $memInfo      Memory info object, used for determining optimum batch size
 	 */
 	public function __construct(TimerInterface $timer, Driver $db, LoggerInterface $logger, Configuration $config, WriterInterface $outputWriter, TableMeta $tableMeta, MemoryInfo $memInfo)
 	{
@@ -233,7 +237,7 @@ class Table extends AbstractPart implements
 		);
 
 		// Initialize the data to write out
-		$this->data = [];
+		$this->data       = [];
 		$this->dataLength = 0;
 	}
 
@@ -296,7 +300,7 @@ class Table extends AbstractPart implements
 			if (!empty($this->data))
 			{
 				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data));
-				$this->data = [];
+				$this->data       = [];
 				$this->dataLength = 0;
 			}
 
@@ -316,7 +320,7 @@ class Table extends AbstractPart implements
 
 				foreach ($this->pkColumns as $c)
 				{
-					$v = addcslashes($row[$c], "\\'");
+					$v     = addcslashes($row[$c], "\\'");
 					$pkSig = "$c = '$v' ,";
 				}
 
@@ -369,8 +373,8 @@ class Table extends AbstractPart implements
 	/**
 	 * Apply the data dump filters on the table
 	 *
-	 * @param   TableMeta $table    The metadata of the table we are backing up
-	 * @param   array     $filters  The list of filter classes
+	 * @param   TableMeta $table   The metadata of the table we are backing up
+	 * @param   array     $filters The list of filter classes
 	 *
 	 * @return  bool  True if we can back up the table data
 	 */
@@ -414,9 +418,9 @@ class Table extends AbstractPart implements
 	/**
 	 * Apply the per-row filters on the table
 	 *
-	 * @param   string  $tableName  The name of the table we're backing up
-	 * @param   array   $row        The row we're currently backing up
-	 * @param   array   $filters    The list of filter classes
+	 * @param   string $tableName The name of the table we're backing up
+	 * @param   array  $row       The row we're currently backing up
+	 * @param   array  $filters   The list of filter classes
 	 *
 	 * @return  bool
 	 */
@@ -462,10 +466,10 @@ class Table extends AbstractPart implements
 	 * PHP memory. If we have plenty of memory (or no limit) we are going to use the default batch size. The returned
 	 * batch size can never be larger than the default batch size.
 	 *
-	 * @param   TableMeta  $tableMeta         The metadata of the table. We are going to use the average row size.
-	 * @param   int        $memoryLimit       How much PHP memory is available, 0 for no limit
-	 * @param   int        $usedMemory        How much PHP memory is used, in bytes
-	 * @param   int        $defaultBatchSize  The default (and maximum) batch size
+	 * @param   TableMeta $tableMeta        The metadata of the table. We are going to use the average row size.
+	 * @param   int       $memoryLimit      How much PHP memory is available, 0 for no limit
+	 * @param   int       $usedMemory       How much PHP memory is used, in bytes
+	 * @param   int       $defaultBatchSize The default (and maximum) batch size
 	 *
 	 * @return  int
 	 */
@@ -496,7 +500,7 @@ class Table extends AbstractPart implements
 		}
 
 		// The memory available for manipulating data is less than the free memory. The 0.75 factor is empirical.
-		$memoryLeft  = 0.75 * ($memoryLimit - $usedMemory);
+		$memoryLeft = 0.75 * ($memoryLimit - $usedMemory);
 
 		// This should never happen. I will return the default batch size and brace for impact: crash imminent!
 		if ($memoryLeft <= 0)
@@ -553,8 +557,8 @@ class Table extends AbstractPart implements
 	/**
 	 * Return a list of column names which belong to the named key
 	 *
-	 * @param   string    $keyName  The key name to search for
-	 * @param   Column[]  $columns  The list of columns to search in
+	 * @param   string   $keyName The key name to search for
+	 * @param   Column[] $columns The list of columns to search in
 	 *
 	 * @return  string[]
 	 */
@@ -576,7 +580,7 @@ class Table extends AbstractPart implements
 	/**
 	 * Find the auto-increment column of the table
 	 *
-	 * @param   Column[]  $columns
+	 * @param   Column[] $columns
 	 *
 	 * @return  string
 	 */
@@ -653,8 +657,8 @@ class Table extends AbstractPart implements
 	/**
 	 * Convert a single row in a tuple for use in a SQL INSERT statement
 	 *
-	 * @param   array   $row  The row data to dumb
-	 * @param   Driver  $db   The database driver, used to escape the data
+	 * @param   array  $row The row data to dumb
+	 * @param   Driver $db  The database driver, used to escape the data
 	 *
 	 * @return  string
 	 */
@@ -676,7 +680,7 @@ class Table extends AbstractPart implements
 	 * characters, i.e. the raw byte length. If mbstring is not enabled we fall back to strlen() and hope your PHP
 	 * version does not know how to handle multibyte Unicode characters, the default behaviour for PHP 5.6 and 7.x.
 	 *
-	 * @param   string  $string  The string to get the length of
+	 * @param   string $string The string to get the length of
 	 *
 	 * @return  int  The string length in bytes
 	 */
@@ -688,8 +692,8 @@ class Table extends AbstractPart implements
 	/**
 	 * Converts the table's column list into the columns argument for an INSERT INTO query.
 	 *
-	 * @param   array   $columns  A list of column names
-	 * @param   Driver  $db       The database driver used to quote the field names
+	 * @param   array  $columns A list of column names
+	 * @param   Driver $db      The database driver used to quote the field names
 	 *
 	 * @return  string
 	 */
