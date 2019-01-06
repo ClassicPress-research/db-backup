@@ -1,0 +1,60 @@
+################################################################################
+## Simple DB Backup -- Travis CI configuration
+##
+## This file tells Travis CI how to automatically run the tests every time we
+## commit code to the repository.
+##
+## Note: we need to enable Travis integration on the repo
+################################################################################
+
+## Testing targets (WHAT to test)
+################################################################################
+
+git:
+  # We don't need to clone submodules
+  submodules: false
+  # Shallow clone of the repository (we don't do Git operations and this is much faster)
+  depth: 1
+  # Do not log cloning the repo, we have no use for that
+  quiet: true
+
+branches:
+  only:
+  - master
+  - development
+
+## Testing environments (WHERE to test)
+################################################################################
+
+language: php
+php:
+  - 7.3
+  - 7.2
+  - 7.1
+  - 7.0
+  - 5.6
+
+env:
+  - DB_HOST="localhost" DB_NAME="dbbackuptest" DB_USER="dbbackup" DB_PASS="DBb@c|<uP"
+
+## Build setup (HOW to test)
+################################################################################
+
+sudo: false
+
+install:
+  - composer selfupdate
+  - composer install
+
+before_script:
+  - mysql -u root -e 'CREATE DATABASE `dbbackuptest` DEFAULT COLLATE utf8mb4_unicode_520_ci;'
+  - mysql -u root -e 'GRANT ALL PRIVILEGES ON `dbbackuptest`.* to 'dbbackup'@'localhost' IDENTIFIED BY 'DBb@c|<uP';'
+
+#after_script:
+#  - cat Tests/debug.txt
+
+## Notifications (AFTER test)
+################################################################################
+
+notifications:
+  email: false

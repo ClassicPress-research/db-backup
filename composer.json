@@ -1,0 +1,47 @@
+{
+  "name": "classicpress/simpledbbackup",
+  "description": "Simple DB Backup",
+  "keywords": [
+    "database",
+    "backup",
+    "php",
+    "mysql"
+  ],
+  "homepage": "https://github.com/ClassicPress-research/db-backup",
+  "type": "project",
+  "license": "GPL-3.0+",
+  "authors": [
+    {
+      "name": "Nicholas K. Dionysopoulos",
+      "email": "nicholas_NO_SPAM_PLEASE@akeebabackup.com",
+      "homepage": "http://www.dionysopoulos.me",
+      "role": "Lead Developer"
+    }
+  ],
+
+  "require": {
+    "php": ">=5.6.0",
+    "ext-mysqli": "*",
+    "ext-json": "*",
+    "ext-pdo": "*"
+  },
+
+  "require-dev": {
+    "phpunit/phpunit": "~5",
+    "phpunit/dbunit": "~2",
+    "vlucas/phpdotenv": "~2.4",
+    "fzaninotto/faker": "~1.8",
+    "mikey179/vfsStream": "v1.6.5"
+  },
+
+  "autoload": {
+    "psr-4": {
+      "ClassicPress\\SimpleDBBackup\\": "src/lib"
+    }
+  },
+
+  "autoload-dev": {
+    "ClassicPress\\SimpleDBBackup\\": "Tests"
+  }
+
+}

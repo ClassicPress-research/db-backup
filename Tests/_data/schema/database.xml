@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  ~ @package   SimpleDBBackup
+  ~ @copyright Copyright (c)2018-2019 Nicholas K. Dionysopoulos / ClassicPress
+  ~ @license   http://www.gnu.org/copyleft/gpl.html GNU/GPL v3 or later
+  -->
+
+<dataset>
+  <table name="akr_dbtest">
+    <column>id</column>
+    <column>title</column>
+    <column>start_date</column>
+    <column>description</column>
+    <row>
+      <value>1</value>
+      <value>Testing</value>
+      <value>1980-04-18 00:00:00</value>
+      <value>one</value>
+    </row>
+    <row>
+      <value>2</value>
+      <value>Testing2</value>
+      <value>1980-04-18 00:00:00</value>
+      <value>one</value>
+    </row>
+    <row>
+      <value>3</value>
+      <value>Testing3</value>
+      <value>1980-04-18 00:00:00</value>
+      <value>three</value>
+    </row>
+    <row>
+      <value>4</value>
+      <value>Testing4</value>
+      <value>1980-04-18 00:00:00</value>
+      <value>four</value>
+    </row>
+  </table>
+</dataset>

@@ -1,0 +1,9 @@
+## phpStorm
+
+/.idea
+
+## Composer vendor folder (development)
+/vendor/
+
+## Non-commitable Unit Test files
+/Tests/.env

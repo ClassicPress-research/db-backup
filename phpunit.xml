@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+        backupGlobals="false"
+        bootstrap="Tests/bootstrap.php"
+        beStrictAboutTestsThatDoNotTestAnything="true"
+        beStrictAboutOutputDuringTests="true"
+        beStrictAboutTestSize="true"
+        colors="true"
+        convertErrorsToExceptions="true"
+        convertNoticesToExceptions="true"
+        convertWarningsToExceptions="true"
+>
+    <testsuites>
+        <testsuite name="Simple DB Backup Library Unit Tests">
+            <directory>Tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <!-- ### Code Coverage Exclusions ### -->
+        <whitelist
+                addUncoveredFilesFromWhitelist="true"
+                processUncoveredFilesFromWhitelist="true"
+        >
+            <directory suffix=".php">simpledbbackup/lib</directory>
+            <exclude>
+                <!-- Folders with non-code files -->
+                <directory suffix=".php">release</directory>
+                <directory suffix=".php">Tests</directory>
+                <directory suffix=".php">vendor</directory>
+
+                <!-- Non-code plugin folders -->
+                <directory suffix=".php">simpledbbackup/css</directory>
+                <directory suffix=".php">simpledbbackup/images</directory>
+                <directory suffix=".php">simpledbbackup/js</directory>
+                <directory suffix=".php">simpledbbackup/language</directory>
+                <directory suffix=".php">simpledbbackup/output </directory>
+
+                <!-- PSR-4 Autoloader -->
+                <directory suffix=".php">simpledbbackup/lib/Autoloader</directory>
+
+                <!-- Interfaces -->
+                <directory suffix="Interface.php">simpledbbackup</directory>
+
+                <!-- Trivial classes (only there for inheritance or they just have empty implementations (no code) -->
+                <file>simpledbbackup/lib/Database/Query/Mysql.php</file>
+                <file>simpledbbackup/lib/Database/Query/Pdomysql.php</file>
+                <file>simpledbbackup/lib/Engine/Core/Action/Database/AbstractAction.php</file>
+                <file>simpledbbackup/lib/Engine/Core/Action/Table/AbstractAction.php</file>
+                <file>simpledbbackup/lib/Engine/Core/Filter/Table/AbstractFilter.php</file>
+                <file>simpledbbackup/lib/Engine/Core/Filter/Row/AbstractFilter.php</file>
+                <file>simpledbbackup/lib/Engine/Core/Response/SQL.php</file>
+                <file>simpledbbackup/lib/Logger/NullLogger.php</file>
+                <file>simpledbbackup/lib/Writer/NullWriter.php</file>
+
+                <!-- This is tested through the MySQLi query object -->
+                <file>simpledbbackup/lib/Database/Query/LimitAware.php</file>
+
+                <!-- Trivial traits (they are just collections of property getters and setters) -->
+                <file>simpledbbackup/lib/Database/DatabaseAware</file>
+                <file>simpledbbackup/lib/Engine/DomainAware.php</file>
+                <file>simpledbbackup/lib/Engine/StepAware.php</file>
+                <file>simpledbbackup/lib/Engine/Core/BackupWriterAware.php</file>
+                <file>simpledbbackup/lib/Engine/Core/ConfigurationAware.php</file>
+                <file>simpledbbackup/lib/Engine/Core/OutputWriterAware.php</file>
+                <file>simpledbbackup/lib/Logger/LoggerAware.php</file>
+                <file>simpledbbackup/lib/Timer/TimerAware.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>
