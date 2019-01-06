@@ -127,3 +127,7 @@ There are a few caveats regarding restoration:
 ### Unit Testing
 
 The backup and restoration engine powering the plugin is fully Unit Tested. The plugin interface itself is not. We could possibly use Selenium to test it in the future.
+
+### Requires JavaScript
+
+Running the backup and restoration requires JavaScript enabled. A `<NOSCRIPT>` element wraps the interface, providing feedback about missing JavaScript, disabling the interface in this case.
