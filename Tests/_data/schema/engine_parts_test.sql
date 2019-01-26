@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `tst_table1` (
   `title` varchar(50)      NOT NULL,
   PRIMARY KEY (`id`)
 )
-  ENGINE = MEMORY
+  ENGINE = MyISAM
   DEFAULT COLLATE = utf8mb4_unicode_520_ci;
 
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `tst_table2` (
   `title` varchar(50) NOT NULL,
   PRIMARY KEY (`foo`, `title`)
 )
-  ENGINE = MEMORY
+  ENGINE = InnoDB
   DEFAULT COLLATE = utf8mb4_unicode_520_ci;
 
 CREATE TABLE IF NOT EXISTS `tst_table3` (

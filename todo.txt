@@ -35,9 +35,11 @@ Other testing
 Selenium testing of backup
 Selenium testing of restoration
 
+Caveat: selenium-standalone + Firefox is currently (Jan 2019) broken w/out any sign of improvement. This limits
+testing to Chrome.
+
 Stretch goals -- These are nice-to-haves but not part of the MVP
 ========================================================================================================================
-Dependency tracking
 User-defined table and table data filters
 User-defined row filters
 Allow advanced filtering on all of the above with regular expressions

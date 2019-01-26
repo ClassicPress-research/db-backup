@@ -50,7 +50,16 @@ trait ActionAware
 		array_map(function ($query) use ($outputWriter, &$numActions, $logger) {
 			$numActions++;
 
-			$outputWriter->writeLine(rtrim($query, ';') . ';');
+			$trimmedQuery = rtrim($query, ";\r\n");
+
+			if (empty($trimmedQuery))
+			{
+				$outputWriter->writeLine('');
+
+				return;
+			}
+
+			$outputWriter->writeLine($trimmedQuery . ';');
 		}, $response->getActionQueries());
 
 		return $numActions;

@@ -16,6 +16,7 @@ use ClassicPress\SimpleDBBackup\Database\Metadata\Table as TableMeta;
 use ClassicPress\SimpleDBBackup\Database\Query;
 use ClassicPress\SimpleDBBackup\Engine\AbstractPart;
 use ClassicPress\SimpleDBBackup\Engine\Core\Action\ActionAware;
+use ClassicPress\SimpleDBBackup\Engine\Core\Action\ActionAwareInterface;
 use ClassicPress\SimpleDBBackup\Engine\Core\Action\Table\ActionAware as TableActionAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\Action\Table\GetCreate;
 use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
@@ -44,7 +45,8 @@ class Table extends AbstractPart implements
 	PartInterface,
 	ConfigurationAwareInterface,
 	DatabaseAwareInterface,
-	OutputWriterAwareInterface
+	OutputWriterAwareInterface,
+	ActionAwareInterface
 {
 	use LoggerAware;
 	use DatabaseAware;
@@ -301,7 +303,7 @@ class Table extends AbstractPart implements
 			// If I'm done backing the table and I still have data to write out then please do so now.
 			if (!empty($this->data))
 			{
-				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data));
+				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data) . ';');
 				$this->data       = [];
 				$this->dataLength = 0;
 			}
@@ -346,7 +348,7 @@ class Table extends AbstractPart implements
 			 */
 			if ($this->dataLength + $this->rawByteLength($tableName) + 2 > $maxQuerySize)
 			{
-				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data));
+				$this->outputWriter->writeLine($this->protoSQL . implode(', ', $this->data) . ';');
 
 				// Be kind to the memory
 				unset($sql);

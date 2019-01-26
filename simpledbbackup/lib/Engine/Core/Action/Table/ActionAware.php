@@ -45,17 +45,11 @@ trait ActionAware
 
 		$logger->info("Processing actions to be performed on the table itself.");
 
-		$liveMode        = $config->isLiveMode();
-		$numActions      = 0;
-		$hasOutputWriter = $outputWriter->getFilePath() != '';
-
 		foreach ($perTableActionClasses as $class)
 		{
-			$numActions += $this->runPerTableAction($class, $tableMeta, $columns, $logger, $outputWriter,
+			$this->runPerTableAction($class, $tableMeta, $columns, $logger, $outputWriter,
 				$db, $config);
 		}
-
-		$this->logNumberOfActions($logger, $tableMeta->getName(), $liveMode, $hasOutputWriter, $numActions);
 	}
 
 	/**
@@ -112,42 +106,4 @@ trait ActionAware
 
 		return 0;
 	}
-
-	/**
-	 * Log the results of per-table actions
-	 *
-	 * @param   LoggerInterface  $logger           The logger to output to
-	 * @param   string           $tableName        The name of the table we processed
-	 * @param   bool             $liveMode         Was this Live Mode (ran against the real database)?
-	 * @param   bool             $hasOutputWriter  Did we have an output writer to begin with?
-	 * @param   int              $numActions       How many actions did we take?
-	 *
-	 * @return  void
-	 *
-	 * @codeCoverageIgnore
-	 */
-	protected function logNumberOfActions(LoggerInterface $logger, $tableName, $liveMode, $hasOutputWriter, $numActions)
-	{
-		// Live Mode -- message indicates we did something
-		$message = "Actions performed on the table %s: %d";
-
-		if (!$liveMode)
-		{
-			$logger->info(sprintf($message, $tableName, $numActions));
-
-			return;
-		}
-
-		// Dry Run with Save To File -- message indicates we wrote something to a file
-		$message = "Actions to be performed on the table %s (saved in SQL file): %d";
-
-		// Dry Run without Save To File -- message indicates we did not execute anything
-		if (!$hasOutputWriter)
-		{
-			$message = "Actions which would have been performed on the table %s: %d";
-		}
-
-		$logger->info(sprintf($message, $tableName, $numActions));
-	}
-
 }
