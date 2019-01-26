@@ -118,7 +118,7 @@ class TableTest extends \PHPUnit_Extensions_Database_TestCase
 		$memoryInfo   = $this->makeMemoryInfo($memLimit, $memUsage);
 		$tableMeta    = $db->getTableMeta($table);
 
-		$part = new Table($timer, $db, $logger, $config, $outWriter, $backupWriter, $tableMeta, $memoryInfo);
+		$part = new Table($timer, $db, $logger, $config, $outWriter, $tableMeta, $memoryInfo);
 		$run  = 0;
 
 		while (true)
@@ -129,7 +129,6 @@ class TableTest extends \PHPUnit_Extensions_Database_TestCase
 
 			if ($part->getState() == PartInterface::STATE_PREPARED)
 			{
-				self::assertEquals($expectedColumns, $this->getObjectAttribute($part, 'replaceableColumns'), 'Unexpected columns with replaceable data');
 				self::assertEquals($expectedPKColumns, $this->getObjectAttribute($part, 'pkColumns'), 'Unexpected primary key column(s)');
 				self::assertEquals($expectedAutoIncrementColumn, $this->getObjectAttribute($part, 'autoIncrementColumn'), 'Unexpected primary key column');
 				self::assertLessThanOrEqual($expectedMaxBatch, $this->getObjectAttribute($part, 'batch'), 'Unexpected batch size');

@@ -24,7 +24,7 @@ class TableSpy implements WarningsAwareInterface, ErrorAwareInterface, StepAware
 
 	public $meta;
 
-	public function __construct($timer, $db, $logger, $config, $outputWriter, $backupWriter, Table $tableMeta, $memInfo)
+	public function __construct($timer, $db, $logger, $config, $outputWriter, Table $tableMeta, $memInfo)
 	{
 		self::$instanceParams[] = $tableMeta;
 

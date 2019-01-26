@@ -5,7 +5,6 @@ restoration. Tasks here won't make much sense to anyone but me. Sorry...
 
 Missing engine features
 ========================================================================================================================
-Engine\Core\Action\Table classes for outputting the CREATE TABLE / CREATE VIEW
 Sort tables and views in the Database part
     I could abstract this in a way which allows me to use proper dependency tracking later (future-proofing FTW)
     This requires passing an array of table meta to a method and get a sorted list back
@@ -15,6 +14,7 @@ SQL file splitting with manual limits
 
 Unit Tests
 ========================================================================================================================
+Engine\Core\Action\Table\GetCreate
 Engine\Core\Filter\Data\* (see how I tested filters in Akeeba Replace)
 Engine\Core\Part\Database
 Engine\Core\Part\Table

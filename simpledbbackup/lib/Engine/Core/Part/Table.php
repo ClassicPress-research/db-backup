@@ -17,6 +17,7 @@ use ClassicPress\SimpleDBBackup\Database\Query;
 use ClassicPress\SimpleDBBackup\Engine\AbstractPart;
 use ClassicPress\SimpleDBBackup\Engine\Core\Action\ActionAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\Action\Table\ActionAware as TableActionAware;
+use ClassicPress\SimpleDBBackup\Engine\Core\Action\Table\GetCreate;
 use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAwareInterface;
@@ -93,6 +94,7 @@ class Table extends AbstractPart implements
 	 * @var  array
 	 */
 	protected $perTableActions = [
+		GetCreate::class,
 	];
 
 	/**

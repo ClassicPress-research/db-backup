@@ -124,7 +124,7 @@ class DatabaseTest extends \PHPUnit_Extensions_Database_TestCase
 		$config       = $this->makeConfiguration($replacements, $regularExpressions);
 		$memoryInfo   = $this->makeMemoryInfo($memLimit, $memUsage);
 
-		$part = new Database($timer, $db, $logger, $outWriter, $backupWriter, $config, $memoryInfo);
+		$part = new Database($timer, $db, $logger, $outWriter, $config, $memoryInfo);
 		$run  = 0;
 
 		// Inject a stub/spy Table class name into the Database class
