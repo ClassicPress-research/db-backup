@@ -3,15 +3,8 @@ My to-do list
 I am not using GitHub issues at this stage because the architecture is a bit fluid, especially with regards to
 restoration. Tasks here won't make much sense to anyone but me. Sorry...
 
-Missing engine features
-========================================================================================================================
-SQL file splitting with manual limits
-    Currently we only do auto-detection. Add a Configuration property maxFileSize for maximum SQL file size.
-    Setter: if maxFileSize is smaller than maxQuerySize lower maxQuerySze to maxFileSize
-
 Unit Tests
 ========================================================================================================================
-Engine\Core\Action\Table\GetCreate
 Engine\Core\Filter\Data\* (see how I tested filters in Akeeba Replace)
 Engine\Core\Part\Database
 Engine\Core\Part\Table
@@ -44,3 +37,7 @@ Allow advanced filtering on all of the above with regular expressions
 Create and use compressed SQL files (probably requires support for GZip stream in PHP?)
 WP-CLI integration
     Now, how do you Unit Test *that*?
+SQL file splitting with manual limits
+    Currently we only do auto-detection. Add a Configuration property maxFileSize for maximum SQL file size.
+    Setter: if maxFileSize is smaller than maxQuerySize lower maxQuerySze to maxFileSize
+    Why is this stretch goal: you only need to split SQL files if your host doesn't let you go full size.

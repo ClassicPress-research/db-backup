@@ -41,6 +41,8 @@ class DatabaseTest extends \PHPUnit_Extensions_Database_TestCase
 	 * Runs before any tests from this class execute.
 	 *
 	 * @return void
+	 *
+	 * @throws \Exception
 	 */
 	public static function setUpBeforeClass()
 	{
