@@ -17,6 +17,8 @@ use ClassicPress\SimpleDBBackup\Engine\Core\Configuration;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\ConfigurationAwareInterface;
 use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Table\FilterInterface;
+use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Table\NonCore;
+use ClassicPress\SimpleDBBackup\Engine\Core\Filter\Table\Sorter;
 use ClassicPress\SimpleDBBackup\Engine\Core\Helper\MemoryInfo;
 use ClassicPress\SimpleDBBackup\Engine\Core\OutputWriterAware;
 use ClassicPress\SimpleDBBackup\Engine\Core\OutputWriterAwareInterface;
@@ -49,6 +51,9 @@ class Database extends AbstractPart implements
 	 * @var  array
 	 */
 	private $filters = [
+		NonCore::class,
+		// IMPORTANT! Always put the sorting class **LAST**.
+		Sorter::class
 	];
 
 	/**

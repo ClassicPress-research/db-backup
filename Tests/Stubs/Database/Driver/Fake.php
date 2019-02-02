@@ -10,6 +10,7 @@ namespace ClassicPress\SimpleDBBackup\Database\Driver;
 require_once DBBACKUP_TEST_ROOT . '/Stubs/Database/Query/Fake.php';
 
 use ClassicPress\SimpleDBBackup\Database\Driver;
+use ClassicPress\SimpleDBBackup\Database\Metadata\Table;
 use ClassicPress\SimpleDBBackup\Database\Query\Fake as FakeQuery;
 
 /**
@@ -27,6 +28,8 @@ class Fake extends Driver
 	protected $nullDate = '1BC';
 
 	protected static $dbMinimum = '12.1';
+
+	public $tableMeta = [];
 
 	public function __construct(array $options = [])
 	{
@@ -175,4 +178,18 @@ class Fake extends Driver
 	{
 		return $this;
 	}
+
+	public function getTableMeta($tableName)
+	{
+		$realName = $this->replacePrefix($tableName);
+
+		if (array_key_exists($realName, $this->tableMeta))
+		{
+			return $this->tableMeta[$realName];
+		}
+
+		return new Table($realName, 'MyISAM', 123, 'utf8mb4_general_ci');
+	}
+
+
 }
